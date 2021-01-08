@@ -7,6 +7,7 @@
         "reveal": "always"
     },
     "tasks": [
+        // C 컴파일
         {
             "label": "save and compile for C",
             "command": "gcc",
@@ -32,6 +33,33 @@
                 }
             }
         },
+        // C++ 컴파일
+        {
+            "label": "save and compile for C++",
+            "command": "g++",
+            "args": [
+                "${file}",
+                "-g",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "group": "build",
+            "problemMatcher": {
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            }
+        },
+        // 바이너리 실행
         {
             "label": "execute",
             "command": "cmd",
