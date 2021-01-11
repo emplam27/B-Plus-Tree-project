@@ -1,35 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/*
-연결리스트를 구현
-*/
 
-typedef struct _NODE
+typedef struct _node
 {
-    struct _NODE *next;
-    struct _NODE *before;
+    struct _node *next;
+    struct _node *before;
     int data;
-} NODE;
+} node;
 
-int insertNode(int index, int data, NODE *head, int *list_length);
-int searchNode(int value, NODE *head);
+int insert_node(int index, int data, node *head, int *list_length);
+int search_node(int value, node *head);
 
 int main()
 {
     int list_length = 0;
-    NODE *head = malloc(sizeof(NODE));
+    node *head = malloc(sizeof(node));
     (*head).next = NULL;
 
-    insertNode(0, 10, head, &list_length);
-    insertNode(1, 20, head, &list_length);
-    insertNode(2, 40, head, &list_length);
-    insertNode(2, 60, head, &list_length);
-    insertNode(5, 60, head, &list_length);
-    searchNode(50, head);
+    insert_node(0, 10, head, &list_length);
+    insert_node(1, 20, head, &list_length);
+    insert_node(2, 40, head, &list_length);
+    insert_node(2, 60, head, &list_length);
+    insert_node(5, 60, head, &list_length);
+    search_node(50, head);
 
     // 노드들의 값을 출력하는 과정
-    NODE *curr_node = (*head).next;
+    node *curr_node = (*head).next;
     while (curr_node)
     {
         printf("%d\n", curr_node->data);
@@ -40,7 +37,7 @@ int main()
     curr_node = (*head).next;
     while (curr_node)
     {
-        NODE *tmp_next = (*curr_node).next;
+        node *tmp_next = (*curr_node).next;
         free(curr_node);
         curr_node = tmp_next;
     }
@@ -50,7 +47,7 @@ int main()
     return 0;
 }
 
-int insertNode(int index, int data, NODE *head, int *list_length)
+int insert_node(int index, int data, node *head, int *list_length)
 {   
     if (index > *list_length) {
         printf("fail insertion %d in %d index\n", data, index);
@@ -58,14 +55,14 @@ int insertNode(int index, int data, NODE *head, int *list_length)
     }
 
     // 삽입되야 할 노드까지 이동
-    NODE *curr_node = head;
+    node *curr_node = head;
     for (int i = 0; i < index; i ++) {
         curr_node = (*curr_node).next;
     }
     
     // 노드 삽입
-    NODE *next_node = (*curr_node).next;
-    NODE *new_node = malloc(sizeof(NODE));
+    node *next_node = (*curr_node).next;
+    node *new_node = malloc(sizeof(node));
     (*new_node).data = data;
     (*new_node).next = next_node;
     (*curr_node).next = new_node;
@@ -73,9 +70,9 @@ int insertNode(int index, int data, NODE *head, int *list_length)
     printf("success insertion %d in %d index\n", data, index);
 }
 
-int searchNode(int value, NODE *head)
+int search_node(int value, node *head)
 {
-    NODE *curr_node = (*head).next;
+    node *curr_node = (*head).next;
     int index = 0;
     while ((*curr_node).next)
     {

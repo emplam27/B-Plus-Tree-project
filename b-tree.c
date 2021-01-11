@@ -2,16 +2,16 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define MIN_DEGREE 3
+#define MIN_DEGREE 2
 #define MAX_KEY (MIN_DEGREE*2 - 1)
 #define MIN_KEY (MIN_DEGREE - 1)
 #define MAX_CHILD (2 * MIN_DEGREE)
 #define MIN_CHILD (MIN_DEGREE)
 
-typedef struct node {
+typedef struct _node {
     bool is_leaf;
     int key[MAX_KEY + 1], key_count;
-    struct node *linker[MAX_KEY + 2];
+    struct _node *linker[MAX_KEY + 2];
 } node;
 
 void b_tree_create(node **root);
@@ -275,7 +275,7 @@ void delete_node(node *sub_root, int k) {
         else { // 왼쪽, 오른쪽 자식 모두의 키 개수가 t개 미만이어서 부모키를 가져와 병합 수행
             node *left_child = sub_root->linker[i - 1];
             node *right_child = sub_root->linker[i];
-            bind_node(sub_root, left_child, right_child, i);
+            bind_node(sub_root, left_child, right_child, i - 1);
             delete_node(left_child, k);
             return; 
         }
