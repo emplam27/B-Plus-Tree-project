@@ -5,8 +5,6 @@
 #define MIN_DEGREE 2
 #define MAX_KEY (MIN_DEGREE*2 - 1)
 #define MIN_KEY (MIN_DEGREE - 1)
-#define MAX_CHILD (2 * MIN_DEGREE)
-#define MIN_CHILD (MIN_DEGREE)
 
 typedef struct _node {
     bool is_leaf;
