@@ -16,9 +16,9 @@ void b_tree_create(node **root);
 void b_tree_insert(node **root, int k);
 void b_tree_delete(node *sub_root, node **root, int k);
 void b_tree_search(node *sub_root, int k);
-void split_node(node *parent_node, int child_index);
-void insert_node(node *sub_root, int k);
-void delete_node(node *sub_root, int k);
+void node_split(node *parent_node, int child_index);
+void node_insert(node *sub_root, int k);
+void node_delete(node *sub_root, int k);
 void bind_node(node *parent, node *left_child, node *right_child, int index);
 int PRED(node *pred_child);
 int SUCC(node *succ_child);
@@ -88,7 +88,7 @@ void b_tree_create(node **root) {
     *root = new_node;
 }
 
-void split_node(node *parent_node, int child_index) {
+void node_split(node *parent_node, int child_index) {
     node *right_child = (node *)malloc(sizeof(node));
     node *left_child = parent_node->linker[child_index];
     right_child->is_leaf = left_child -> is_leaf;
@@ -126,15 +126,15 @@ void b_tree_insert(node **root, int k) {
         new_root->key_count = 0;
         new_root->linker[1] = curr_root;
         curr_root->linker[0] = new_root; //child[0]에 부모 추가
-        split_node(new_root, 1);
-        insert_node(new_root, k);
+        node_split(new_root, 1);
+        node_insert(new_root, k);
     }
     else {
-        insert_node(curr_root, k);
+        node_insert(curr_root, k);
     }
 }
 
-void insert_node(node *sub_root, int k) {
+void node_insert(node *sub_root, int k) {
     int i = sub_root->key_count;
     if (sub_root->is_leaf){
         while (i >= 1 && k < sub_root->key[i]) {
@@ -150,12 +150,12 @@ void insert_node(node *sub_root, int k) {
         }
         i += 1;
         if (sub_root->linker[i]->key_count == MAX_KEY) {
-            split_node(sub_root, i);
+            node_split(sub_root, i);
             if (k > sub_root->key[i]) {
                 i += 1;
             } 
         }
-        insert_node(sub_root->linker[i], k);
+        node_insert(sub_root->linker[i], k);
     }
 }
 
@@ -180,7 +180,7 @@ void b_tree_delete(node *sub_root, node **root, int k) {
             return;
         }
     }
-    delete_node(sub_root, k);
+    node_delete(sub_root, k);
     if ((*root)->key_count == 0) {
         if ((*root)->is_leaf) {
             printf("tree is empty\n");
@@ -197,7 +197,7 @@ void b_tree_delete(node *sub_root, node **root, int k) {
     }
 }
 
-void delete_node(node *sub_root, int k) {
+void node_delete(node *sub_root, int k) {
     // 리프노드일 때
     if (sub_root->is_leaf){
         int original_key_count = sub_root->key_count;
@@ -226,19 +226,19 @@ void delete_node(node *sub_root, int k) {
         if (sub_root->linker[i]->key_count >= MIN_DEGREE) {
             int pred = PRED(sub_root->linker[i]);
             sub_root->key[i] = pred;
-            delete_node(sub_root->linker[i], pred);
+            node_delete(sub_root->linker[i], pred);
             return;
         }
         else if (sub_root->linker[i + 1]->key_count >= MIN_DEGREE) {
             int succ = SUCC(sub_root->linker[i + 1]);
             sub_root->key[i] = succ;
-            delete_node(sub_root->linker[i + 1], succ);
+            node_delete(sub_root->linker[i + 1], succ);
             return;
         } else {
             node *left_child = sub_root->linker[i];
             node *right_child = sub_root->linker[i + 1];
             bind_node(sub_root, left_child, right_child, i);
-            delete_node(left_child, k);
+            node_delete(left_child, k);
             return;
         }
         return;
@@ -246,7 +246,7 @@ void delete_node(node *sub_root, int k) {
     // 값을 찾지 못했을 때
     if (i == sub_root->key_count + 1) { // 노드의 키 안에 k보다 큰 키가 존재하지 않아 가장 오른쪽 자식노드 검사
         if (sub_root->linker[i]->key_count >= MIN_DEGREE) { // 오른쪽 자식노드의 키 개수가 t 이상일 때
-            delete_node(sub_root->linker[i], k);
+            node_delete(sub_root->linker[i], k);
             return;
         }
         // 오른쪽 자식노드의 키 개수가 t 미만이어서 왼쪽 자식을 검사
@@ -267,20 +267,20 @@ void delete_node(node *sub_root, int k) {
             right_child->key[1] = sub_root->key[i - 1];
             sub_root->key[i - 1] = left_child->key[left_sibling_key_count];
             left_child->key_count -= 1;
-            delete_node(right_child, k);
+            node_delete(right_child, k);
             return;
         }
         else { // 왼쪽, 오른쪽 자식 모두의 키 개수가 t개 미만이어서 부모키를 가져와 병합 수행
             node *left_child = sub_root->linker[i - 1];
             node *right_child = sub_root->linker[i];
             bind_node(sub_root, left_child, right_child, i - 1);
-            delete_node(left_child, k);
+            node_delete(left_child, k);
             return; 
         }
     }
     // 가장 오른쪽 노드를 검사하는 경우가 아니라면
     if (sub_root->linker[i]->key_count >= MIN_DEGREE) { // 왼쪽 자식 노드의 key 개수가 t개 이상
-        delete_node(sub_root->linker[i], k);
+        node_delete(sub_root->linker[i], k);
         return;
     }
     else { // 왼쪽 자식 노드의 key 개수가 t개 미만이어서 오른쪽 자식을 검사
@@ -300,14 +300,14 @@ void delete_node(node *sub_root, int k) {
                     right_child->linker[j] = right_child->linker[j + 1];
                 }
             }
-            delete_node(left_child, k);
+            node_delete(left_child, k);
             return;
         }
         else { // 왼쪽, 오른쪽 자식노드의 key 개수가 t개 미만이기 때문에 부모키를 가져와 병합을 수행
             node *left_child = sub_root->linker[i];
             node *right_child = sub_root->linker[i + 1];
             bind_node(sub_root, left_child, right_child, i);
-            delete_node(sub_root->linker[i], k);
+            node_delete(sub_root->linker[i], k);
             return;
         }
     }
@@ -338,7 +338,7 @@ int PRED (node *pred_child) {
     if (pred_child->is_leaf) {
         return pred_child->key[pred_child->key_count];
     } else {
-        PRED(pred_child->linker[(pred_child->key_count) + 1]);
+        return PRED(pred_child->linker[(pred_child->key_count) + 1]);
     }
 }
 
@@ -346,7 +346,7 @@ int SUCC (node *succ_child) {
     if (succ_child->is_leaf) {
         return succ_child->key[1];
     } else {
-        SUCC(succ_child->linker[1]);
+        return SUCC(succ_child->linker[1]);
     }
 }
 
