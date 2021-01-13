@@ -2,9 +2,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define MIN_DEGREE 2
+#define MIN_DEGREE 3
 #define MAX_KEY (MIN_DEGREE*2 - 1)
-#define MIN_KEY (MIN_DEGREE - 1)
 
 typedef struct _node {
     bool is_leaf;
@@ -12,88 +11,73 @@ typedef struct _node {
     struct _node *linker[MAX_KEY + 2];
 } node;
 
+node *node_create();
 void b_tree_create(node **root);
 void b_tree_insert(node **root, int k);
 void b_tree_delete(node *sub_root, node **root, int k);
 void b_tree_search(node *sub_root, int k);
-void node_split(node *parent_node, int child_index);
 void node_insert(node *sub_root, int k);
+void node_split(node *parent, int child_index);
 void node_delete(node *sub_root, int k);
+void move_key_right_to_left(node *left_child, node *right_child, int *parent_key);
+void move_key_left_to_right(node *left_child, node *right_child, int *parent_key);
 void bind_node(node *parent, node *left_child, node *right_child, int index);
+void display(node *cur_node, int blanks);
+void test_case(node **root);
 int PRED(node *pred_child);
 int SUCC(node *succ_child);
-void display(node *cur_node, int blanks);
 
 int main() {
     node *root;
     b_tree_create(&root);
-
-    b_tree_insert(&root, 10);
-    b_tree_insert(&root, 20);
-    b_tree_insert(&root, 30);
-    b_tree_insert(&root, 40);
-    b_tree_insert(&root, 50);
-    b_tree_insert(&root, 60);
-    b_tree_insert(&root, 70);
-    b_tree_insert(&root, 80);
-    b_tree_insert(&root, 90);
-    b_tree_insert(&root, 100);
-    b_tree_insert(&root, 110);
-    b_tree_insert(&root, 120);
-    b_tree_insert(&root, 130);
-    b_tree_insert(&root, 140);
-    b_tree_insert(&root, 150);
-    b_tree_insert(&root, 160);
-    b_tree_insert(&root, 170);
-    b_tree_insert(&root, 180);
-    b_tree_insert(&root, 190);
-    b_tree_insert(&root, 200);
-    b_tree_insert(&root, 210);
-    b_tree_insert(&root, 220);
-    b_tree_insert(&root, 230);
-    b_tree_insert(&root, 240);
-    b_tree_insert(&root, 250);
-    b_tree_insert(&root, 260);
-    b_tree_insert(&root, 9);
-    b_tree_insert(&root, 39);
-    b_tree_insert(&root, 101);
-    b_tree_insert(&root, 102);
-    b_tree_insert(&root, 103);
-    b_tree_insert(&root, 104);
-    b_tree_insert(&root, 161);
-    b_tree_insert(&root, 191);
-    b_tree_insert(&root, 251);
-
-    b_tree_delete(root, &root, 103);
-    b_tree_delete(root, &root, 70);
-    b_tree_delete(root, &root, 130);
-    b_tree_delete(root, &root, 104);
-    b_tree_delete(root, &root, 60);
-    b_tree_delete(root, &root, 120);
-    b_tree_delete(root, &root, 160);
-    b_tree_delete(root, &root, 180);
-    b_tree_delete(root, &root, 250);
-    b_tree_delete(root, &root, 20);
-    b_tree_delete(root, &root, 80);
-    b_tree_delete(root, &root, 102);
-    b_tree_delete(root, &root, 50);
-    b_tree_delete(root, &root, 90);
+    test_case(&root);
     display(root, 0);
 }
 
-void b_tree_create(node **root) {
+void test_case(node **root) {
+    int* out_arr = (int*)malloc(sizeof(int) * 1000000);
+    for (int i = 0; i < 1000000; i++) {
+		out_arr[i] = i;
+    }
+    for (int i = 0; i < 1000000; i++) 
+    {
+        int j = i + rand() / (RAND_MAX / (1000000 - i) + 1);
+        int t = out_arr[j];
+        out_arr[j] = out_arr[i];
+        out_arr[i] = t;
+    }
+	for (int i = 0; i < 1000000; i++) {
+        int r = out_arr[i];
+        b_tree_insert(root, r);
+    }
+    for (int i = 0; i < 1000000; i++) {
+        int r = out_arr[i];
+        b_tree_delete(*root, root, r);
+    }
+}
+
+node *node_create() {
     node *new_node = (node *)malloc(sizeof(node));
+    if (new_node == NULL) {
+        perror("Record creation.");
+        exit(EXIT_FAILURE);
+    }
     new_node->is_leaf = true;
     new_node->key_count = 0;
+    return new_node;
+}
+
+void b_tree_create(node **root) {
+    node *new_node = node_create();
     *root = new_node;
 }
 
-void node_split(node *parent_node, int child_index) {
+void node_split(node *parent, int child_index) {
     node *right_child = (node *)malloc(sizeof(node));
-    node *left_child = parent_node->linker[child_index];
+    node *left_child = parent->linker[child_index];
     right_child->is_leaf = left_child -> is_leaf;
-    right_child->key_count = MIN_KEY;
-    for (int i = 1; i <= MIN_KEY; i ++) {
+    right_child->key_count = MIN_DEGREE - 1;
+    for (int i = 1; i <= MIN_DEGREE - 1; i ++) {
         right_child->key[i] = left_child->key[i + MIN_DEGREE];
     }
     if (!left_child->is_leaf) {
@@ -102,30 +86,29 @@ void node_split(node *parent_node, int child_index) {
         }
     }
     //오른쪽 자식에도 부모 추가
-    right_child->linker[0] = parent_node;
-    left_child->key_count = MIN_KEY;
-    for (int i = parent_node->key_count + 1; i >= child_index + 1; i--) {
-        parent_node->linker[i + 1] = parent_node->linker[i];
+    right_child->linker[0] = parent;
+    left_child->key_count = MIN_DEGREE - 1;
+    for (int i = parent->key_count + 1; i >= child_index + 1; i--) {
+        parent->linker[i + 1] = parent->linker[i];
     }
     //오른쪽 자식 넣기
-    parent_node->linker[child_index + 1] = right_child;
-    for (int i = parent_node->key_count; i >= child_index; i--) {
-        parent_node->key[i + 1] = parent_node->key[i];
+    parent->linker[child_index + 1] = right_child;
+    for (int i = parent->key_count; i >= child_index; i--) {
+        parent->key[i + 1] = parent->key[i];
     }
     //중앙값 올리기
-    parent_node->key[child_index] = left_child->key[MIN_DEGREE];
-    parent_node->key_count += 1;
+    parent->key[child_index] = left_child->key[MIN_DEGREE];
+    parent->key_count += 1;
 }
 
 void b_tree_insert(node **root, int k) {
     node *curr_root = *root;
     if((*root)->key_count == MAX_KEY) {
-        node *new_root = (node*)malloc(sizeof(node));
+        node *new_root = node_create();
         *root = new_root;
         new_root->is_leaf = false;
-        new_root->key_count = 0;
         new_root->linker[1] = curr_root;
-        curr_root->linker[0] = new_root; //child[0]에 부모 추가
+        curr_root->linker[0] = new_root;
         node_split(new_root, 1);
         node_insert(new_root, k);
     }
@@ -214,29 +197,27 @@ void node_delete(node *sub_root, int k) {
         }
         return;
     } 
-
     // 리프노드가 아니라면, key를 순회하면서 삭제하는 값을 찾을 수 있는 위치로 이동
     int i = 1;
-    while(sub_root->key[i] < k && i <= sub_root->key_count) {
+    while(sub_root->key[i] <  k && i <= sub_root->key_count) {
         i += 1;
     }
-
     // 삭제할 값을 찾았다면, PRED와 SUCC 중 하나를 찾아 교환 후 삭제 수행
     if (sub_root->key[i] == k && i <= sub_root->key_count) {
-        if (sub_root->linker[i]->key_count >= MIN_DEGREE) {
-            int pred = PRED(sub_root->linker[i]);
+        node *left_child = sub_root->linker[i];
+        node *right_child = sub_root->linker[i + 1];
+        if (left_child->key_count >= MIN_DEGREE) { // 왼쪽 자식이 MIN_DEGREE 이상의 키 개수를 가지고 있으면
+            int pred = PRED(left_child);
             sub_root->key[i] = pred;
-            node_delete(sub_root->linker[i], pred);
+            node_delete(left_child, pred);
             return;
         }
-        else if (sub_root->linker[i + 1]->key_count >= MIN_DEGREE) {
-            int succ = SUCC(sub_root->linker[i + 1]);
+        else if (right_child->key_count >= MIN_DEGREE) { // 오른쪽 자식이 MIN_DEGREE 이상의 키 개수를 가지고 있으면
+            int succ = SUCC(right_child);
             sub_root->key[i] = succ;
-            node_delete(sub_root->linker[i + 1], succ);
+            node_delete(right_child, succ);
             return;
         } else {
-            node *left_child = sub_root->linker[i];
-            node *right_child = sub_root->linker[i + 1];
             bind_node(sub_root, left_child, right_child, i);
             node_delete(left_child, k);
             return;
@@ -245,72 +226,79 @@ void node_delete(node *sub_root, int k) {
     }
     // 값을 찾지 못했을 때
     if (i == sub_root->key_count + 1) { // 노드의 키 안에 k보다 큰 키가 존재하지 않아 가장 오른쪽 자식노드 검사
+        node *left_child = sub_root->linker[i - 1];
+        node *right_child = sub_root->linker[i];
         if (sub_root->linker[i]->key_count >= MIN_DEGREE) { // 오른쪽 자식노드의 키 개수가 t 이상일 때
             node_delete(sub_root->linker[i], k);
             return;
         }
         // 오른쪽 자식노드의 키 개수가 t 미만이어서 왼쪽 자식을 검사
-        if (sub_root->linker[i - 1]->key_count >= MIN_DEGREE) { // 왼쪽 자식노드의 키 개수가 t 이상일 때 가장 마지막 키를 가져옴
-            node *left_child = sub_root->linker[i - 1];
-            node *right_child = sub_root->linker[i];
-            for (int j = right_child->key_count; j >= 1; j--) {
-                right_child->key[j + 1] = right_child->key[j];
-            }
-            int left_sibling_key_count = left_child->key_count;
-            if (!right_child->is_leaf){
-                for (int j = (right_child->key_count) + 1; j >= 1; j--) {
-                    right_child->linker[j + 1] = right_child->linker[j];
-                }
-                right_child->linker[1] = left_child->linker[left_sibling_key_count + 1];
-            }
-            right_child->key_count += 1;
-            right_child->key[1] = sub_root->key[i - 1];
-            sub_root->key[i - 1] = left_child->key[left_sibling_key_count];
-            left_child->key_count -= 1;
+        if (sub_root->linker[i - 1]->key_count >= MIN_DEGREE) { // 왼쪽 자식노드의 키 개수가 t 이상일 때 왼쪽 노드의 가장 마지막 키를 가져옴
+            move_key_left_to_right(left_child, right_child, &(sub_root->key[i - 1]));
             node_delete(right_child, k);
             return;
         }
         else { // 왼쪽, 오른쪽 자식 모두의 키 개수가 t개 미만이어서 부모키를 가져와 병합 수행
-            node *left_child = sub_root->linker[i - 1];
-            node *right_child = sub_root->linker[i];
             bind_node(sub_root, left_child, right_child, i - 1);
             node_delete(left_child, k);
             return; 
         }
-    }
-    // 가장 오른쪽 노드를 검사하는 경우가 아니라면
-    if (sub_root->linker[i]->key_count >= MIN_DEGREE) { // 왼쪽 자식 노드의 key 개수가 t개 이상
-        node_delete(sub_root->linker[i], k);
         return;
     }
-    else { // 왼쪽 자식 노드의 key 개수가 t개 미만이어서 오른쪽 자식을 검사
-        if (sub_root->linker[i + 1]->key_count >= MIN_DEGREE) { // 오른쪽 자식노드의 키 개수가 t 이상일 때 가장 처음 키를 가져옴
-            node *left_child = sub_root->linker[i];
-            node *right_child = sub_root->linker[i + 1];
-            left_child->key[MIN_DEGREE] = sub_root->key[i];
-            left_child->key_count += 1;
-            sub_root->key[i] = right_child->key[1];
-            right_child->key_count -= 1;
-            left_child->linker[MIN_DEGREE + 1] = right_child->linker[1];
-            for (int j = 1; j <= right_child->key_count; j++) {
-                right_child->key[j] = right_child->key[j + 1];
-            }
-            if (!left_child->is_leaf) {
-                for (int j = 1; j <= (right_child->key_count) + 1; j++ ) {
-                    right_child->linker[j] = right_child->linker[j + 1];
-                }
-            }
+    // 가장 오른쪽 노드를 검사하는 경우가 아니라면
+    else {
+        node *left_child = sub_root->linker[i];
+        node *right_child = sub_root->linker[i + 1];
+        if (sub_root->linker[i]->key_count >= MIN_DEGREE) { // 왼쪽 자식 노드의 key 개수가 t개 이상
+            node_delete(sub_root->linker[i], k);
+            return;
+        }
+        // 왼쪽 자식 노드의 key 개수가 t개 미만이어서 오른쪽 자식을 검사
+        if (sub_root->linker[i + 1]->key_count >= MIN_DEGREE) { // 오른쪽 자식노드의 키 개수가 t 이상일 때 오른쪽 노드의 가장 처음 키를 가져옴
+            move_key_right_to_left(left_child, right_child, &(sub_root->key[i]));
             node_delete(left_child, k);
             return;
         }
         else { // 왼쪽, 오른쪽 자식노드의 key 개수가 t개 미만이기 때문에 부모키를 가져와 병합을 수행
-            node *left_child = sub_root->linker[i];
-            node *right_child = sub_root->linker[i + 1];
             bind_node(sub_root, left_child, right_child, i);
             node_delete(sub_root->linker[i], k);
             return;
         }
+        return;
     }
+}
+
+void move_key_right_to_left(node *left_child, node *right_child, int *parent_key) {
+    left_child->key[MIN_DEGREE] = *parent_key;
+    left_child->key_count += 1;
+    *parent_key = right_child->key[1];
+    right_child->key_count -= 1;
+    left_child->linker[MIN_DEGREE + 1] = right_child->linker[1];
+    for (int j = 1; j <= right_child->key_count; j++) {
+        right_child->key[j] = right_child->key[j + 1];
+    }
+    if (!left_child->is_leaf) {
+        for (int j = 1; j <= (right_child->key_count) + 1; j++ ) {
+            right_child->linker[j] = right_child->linker[j + 1];
+        }
+    }
+}
+
+void move_key_left_to_right(node *left_child, node *right_child, int *parent_key) {
+    for (int j = right_child->key_count; j >= 1; j--) {
+        right_child->key[j + 1] = right_child->key[j];
+    }
+    int left_sibling_key_count = left_child->key_count;
+    if (!right_child->is_leaf){
+        for (int j = (right_child->key_count) + 1; j >= 1; j--) {
+            right_child->linker[j + 1] = right_child->linker[j];
+        }
+        right_child->linker[1] = left_child->linker[left_sibling_key_count + 1];
+    }
+    right_child->key_count += 1;
+    right_child->key[1] = *parent_key;
+    *parent_key = left_child->key[left_sibling_key_count];
+    left_child->key_count -= 1;
 }
 
 void bind_node(node *parent, node *left_child, node *right_child, int index) {
