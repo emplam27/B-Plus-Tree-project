@@ -36,6 +36,10 @@ int main() {
 
 void test_case(node **root) {
     int* out_arr = (int*)malloc(sizeof(int) * 1000000);
+    if (out_arr == NULL) {
+        perror("Test Case creation.");
+        exit(EXIT_FAILURE);
+    }
     for (int i = 0; i < 1000000; i++) {
 		out_arr[i] = i;
     }
@@ -73,7 +77,7 @@ void b_tree_create(node **root) {
 }
 
 void node_split(node *parent, int child_index) {
-    node *right_child = (node *)malloc(sizeof(node));
+    node *right_child = node_create();
     node *left_child = parent->linker[child_index];
     right_child->is_leaf = left_child -> is_leaf;
     right_child->key_count = MIN_DEGREE - 1;

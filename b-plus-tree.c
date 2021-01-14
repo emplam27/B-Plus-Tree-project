@@ -17,6 +17,8 @@ node *node_create();
 void b_plus_tree_create(node **root);
 void b_plus_tree_insert(node **root, int k, int value);
 void b_plus_tree_delete(node *sub_root, node **root, int k);
+void b_plus_tree_search(node* sub_root, int k);
+void b_plus_tree_linear_search(node* sub_root, int k, int n);
 void node_insert(node *sub_root, int k, int v);
 void node_split(node *parent, int child_index);
 void node_delete(node *sub_root, int k);
@@ -25,35 +27,37 @@ void move_key_left_to_right(node *left_child, node *right_child, int *parent_key
 void bind_node(node *parent, node *left_child, node *right_child, int index);
 void bind_leaf_node(node *parent, node *left_child, node *right_child, int index);
 void display(node *cur_node, int blanks);
-void test_case(node **root);
+void test_case(node **root, int size);
 int SUCC(node *succ_child);
 
 int main() {
     node *root;
     b_plus_tree_create(&root);
-    test_case(&root);
+    test_case(&root, 300);
+    b_plus_tree_search(root, 200);
+    b_plus_tree_linear_search(root, 150, 20);
     display(root, 0);
 }
 
-void test_case(node **root) {
+void test_case(node **root, int size) {
     int* out_arr = (int*)malloc(sizeof(int) * 1000000);
-    for (int i = 0; i < 1000000; i++) {
+    if (out_arr == NULL) {
+        perror("Test Case creation.");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < size; i++) {
 		out_arr[i] = i;
     }
-    for (int i = 0; i < 1000000; i++) 
+    for (int i = 0; i < size; i++) 
     {
-        int j = i + rand() / (RAND_MAX / (1000000 - i) + 1);
+        int j = i + rand() / (RAND_MAX / (size - i) + 1);
         int t = out_arr[j];
         out_arr[j] = out_arr[i];
         out_arr[i] = t;
     }
-	for (int i = 0; i < 1000000; i++) {
+	for (int i = 0; i < size; i++) {
         int r = out_arr[i];
-        b_plus_tree_insert(root, r, r);
-    }
-    for (int i = 0; i < 1000000; i++) {
-        int r = out_arr[i];
-        b_plus_tree_delete(*root, root, r);
+        b_plus_tree_insert(root, r, r * 3);
     }
 }
 
@@ -74,6 +78,68 @@ node *node_create() {
 void b_plus_tree_create(node **root) {
     node *new_node = node_create();
     *root = new_node;
+}
+
+void b_plus_tree_search(node* sub_root, int k) {
+    int i = 1;
+    while (i <= sub_root->key_count && k > sub_root->key[i]) {
+        i = i + 1;
+    }
+    if (!sub_root->is_leaf){
+        if (k == sub_root->key[i]) {
+            b_plus_tree_search(sub_root->pointer[i + 1], k);
+        } else {
+            b_plus_tree_search(sub_root->pointer[i], k);
+        }
+    } else if (sub_root->is_leaf) {
+        if (k == sub_root->key[i]) {
+            printf("success\n");
+            int* value_point = (int*)sub_root->pointer[i];
+            printf("key=%d, value=%d \n", sub_root->key[i], *value_point);
+        } else {
+            printf("fail\n");
+        }
+    }
+}
+
+void b_plus_tree_linear_search(node* sub_root, int k, int n) {
+    int i = 1;
+    while (i <= sub_root->key_count && k > sub_root->key[i]) {
+        i = i + 1;
+    }
+    if (!sub_root->is_leaf){
+        if (k == sub_root->key[i]) {
+            b_plus_tree_linear_search(sub_root->pointer[i + 1], k, n);
+        } else {
+            b_plus_tree_linear_search(sub_root->pointer[i], k, n);
+        }
+    } else if (sub_root->is_leaf) {
+        if (k == sub_root->key[i]) {
+            int cnt = 0;
+            for (int j = i; cnt < n && j <= sub_root->key_count; j ++, cnt ++){
+                int* value_point = (int*)sub_root->pointer[j];
+                printf("%d ", *value_point);
+            }
+            sub_root = sub_root->right;
+            while(1) {
+                if (sub_root == NULL){
+                    break;
+                }
+                for (int j = 1; cnt < n && j <= sub_root->key_count; j ++, cnt ++){
+                    int* value_point = (int*)sub_root->pointer[j];
+                    printf("%d ", *value_point);
+                }
+                
+                if (cnt == n){
+                    break;
+                }
+                sub_root = sub_root->right;
+            }
+            printf("\n");
+        } else {
+            printf("%d not in tree\n", k);
+        }
+    }
 }
 
 void b_plus_tree_insert(node **root, int k, int v) {
@@ -105,6 +171,7 @@ void node_split(node *parent, int child_index) {
         for (int i = 1; i <= MIN_DEGREE; i ++) {
             right_child->pointer[i] = left_child->pointer[i + MIN_DEGREE - 1];
         }
+        right_child->right = left_child->right;
         left_child->right = right_child;
         right_child->left = left_child;
     }
@@ -132,6 +199,10 @@ void node_split(node *parent, int child_index) {
 
 void node_insert(node *sub_root, int k, int v) {
     int *value = (int *)malloc(sizeof(int));
+    if (value == NULL) {
+        perror("Value creation.");
+        exit(EXIT_FAILURE);
+    }
     *value = v;
     int i = sub_root->key_count;
     if (sub_root->is_leaf){
@@ -145,17 +216,14 @@ void node_insert(node *sub_root, int k, int v) {
         sub_root->key_count += 1;
     }
     else {
-        while (i >= 1 && k < sub_root->key[i]) {
-            i -= 1;
-        }
-        i += 1;
-        if (sub_root->pointer[i]->key_count == MAX_KEY) {
-            node_split(sub_root, i);
-            if (k > sub_root->key[i]) {
-                i += 1;
-            } 
-        }
-        node_insert(sub_root->pointer[i], k, v);
+        int i = 1;
+		while (i <= sub_root->key_count && k >= sub_root->key[i]) {
+			i++;
+		}
+		if (sub_root->pointer[i]->key_count == MAX_KEY) {
+			node_split(sub_root, i);
+		}
+		node_insert(sub_root->pointer[i], k, v);
     }
 }
 
@@ -280,7 +348,7 @@ void node_delete(node *sub_root, int k) {
             else {
                 bind_leaf_node(sub_root, left_child, right_child, i);
             }
-            node_delete(sub_root->pointer[i], k);
+            node_delete(left_child, k);
             return;
         }
         return;
